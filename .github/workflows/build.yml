@@ -59,3 +59,4 @@ jobs:
       with:
         files: event-submission-layer-${{ github.ref_name }}.zip
         token: ${{ secrets.GITHUB_TOKEN }}
+        fail_on_unmatched_files: true

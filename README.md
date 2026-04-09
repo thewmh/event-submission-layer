@@ -32,25 +32,66 @@ A WordPress plugin that provides a frontend event submission and management syst
 
 ## Installation
 
-1. **Prerequisites**
-   - WordPress 6.2+
-   - PHP 7.4+
-   - Sugar Calendar Lite plugin
+### Method 1: WordPress Admin (Recommended for End Users)
+1. Download the latest release zip from [GitHub Releases](https://github.com/thewmh/event-manager/releases)
+2. Go to WordPress Admin → **Plugins** → **Add New** → **Upload Plugin**
+3. Choose the downloaded `.zip` file and click **Install Now**
+4. Activate the plugin
 
-2. **Install the Plugin**
-   ```bash
-   cd wp-content/plugins/
-   git clone [repository-url] event-manager
-   # or download and unzip the plugin files
-   ```
+### Method 2: WP-CLI (For Developers)
+```bash
+# Install from GitHub release
+wp plugin install https://github.com/thewmh/event-manager/releases/download/v1.0.0/event-submission-layer-v1.0.0.zip --activate
 
-3. **Activate**
-   - Go to WordPress Admin → Plugins
-   - Activate "Event Submission Layer"
+# Or install from local build
+wp plugin install /path/to/event-submission-layer-v1.0.0.zip --activate
+```
 
-4. **Setup**
-   - Plugin automatically creates required pages and roles on activation
-   - Assign "Event Submitter" role to users who should manage events
+### Method 3: Manual Installation
+1. Download and unzip the release from GitHub
+2. Upload the `event-submission-layer/` folder to `wp-content/plugins/`
+3. Go to WordPress Admin → **Plugins** and activate
+
+### Method 4: Development Installation
+```bash
+# Clone repository
+cd wp-content/plugins/
+git clone https://github.com/thewmh/event-manager.git event-submission-layer
+cd event-submission-layer
+
+# Install dependencies and build
+npm install
+npm run build
+
+# Activate in WordPress
+wp plugin activate event-submission-layer
+```
+
+### Prerequisites
+- WordPress 6.2+
+- PHP 7.4+
+- Sugar Calendar Lite plugin
+
+## Distribution
+
+### GitHub Releases
+When you create a new release on GitHub:
+1. Go to **Releases** → **Create a new release**
+2. Tag version: `v1.0.0`
+3. Title: `Event Submission Layer v1.0.0`
+4. Description: Release notes
+5. **Publish release**
+
+GitHub Actions will automatically:
+- Build the plugin
+- Create the distribution zip
+- Attach it to the release
+
+### WordPress.org (Future)
+For official WordPress.org distribution:
+1. Ensure GPL-2.0+ license compliance
+2. Remove development files (`.github/`, `package.json`, etc.)
+3. Submit through [WordPress Plugin Directory](https://wordpress.org/plugins/developers/)
 
 ## Usage
 
@@ -104,7 +145,7 @@ A WordPress plugin that provides a frontend event submission and management syst
 ### Setup
 ```bash
 # Clone the repository
-git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git event-manager
+git clone https://github.com/thewmh/event-manager.git event-manager
 cd event-manager
 
 # Install dependencies

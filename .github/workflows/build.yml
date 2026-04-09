@@ -5,6 +5,8 @@ on:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
+  release:
+    types: [published]
 
 jobs:
   build:
@@ -31,9 +33,29 @@ jobs:
         ls -la dist/
         ls -la dist/assets/
 
+    - name: Create distribution zip
+      run: |
+        cd dist
+        zip -r ../event-submission-layer-${{ github.ref_name }}.zip .
+        cd ..
+        ls -la *.zip
+
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: event-submission-layer
-        path: dist/
+        name: event-submission-layer-${{ github.ref_name }}
+        path: |
+          dist/
+          event-submission-layer-*.zip
         retention-days: 30
+
+    - name: Upload release assets
+      if: github.event_name == 'release'
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./event-submission-layer-${{ github.ref_name }}.zip
+        asset_name: event-submission-layer-${{ github.ref_name }}.zip
+        asset_content_type: application/zip

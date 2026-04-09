@@ -1,17 +1,59 @@
 # Event Submission Layer v1.0.1 - Release Notes
 
-**Release Date:** April 8, 2026  
+**Release Date:** April 9, 2026  
 **Version:** 1.0.1  
 **Repository:** [thewmh/event-submission-layer](https://github.com/thewmh/event-submission-layer)  
 **License:** GPL-2.0-or-later
 
-## 🐛 Bug Fixes
+## ✨ New Features
 
-- **File Naming Correction**: Renamed main plugin file from `event-manager.php` to `event-submission-layer.php` to match project naming
-- **Repository URLs**: Updated all GitHub repository references to use correct project name
-- **Documentation**: Corrected file paths and installation commands throughout documentation
+- **Admin Settings Page**: Added a comprehensive settings page in WordPress admin for configuring plugin options
+- **AJAX Form Submission**: Implemented AJAX-powered form submissions for better user experience without page reloads
+- **Configurable Event Status**: Admins can now set the default status for new events (Publish or Pending Review)
+- **Enhanced Plugin Header**: Added complete plugin metadata including author, license, and compatibility information
+- **Internationalization Support**: Added text domain and translation-ready strings
+- **Uninstall Cleanup**: Proper uninstall hook to clean up options, roles, and pages on plugin removal
+- **Requirement Checks**: Added checks for PHP version and Sugar Calendar dependency with admin notices
+- **Improved Error Handling**: Better error messages and validation with user-friendly feedback
+
+## 🛠️ Technical Improvements
+
+- **Code Refactoring**: Extracted form processing logic into reusable functions
+- **Security Enhancements**: Improved nonce handling and input validation
+- **Asset Management**: Organized JavaScript and CSS assets in proper directory structure
+- **Settings API Integration**: Used WordPress Settings API for admin configuration
+- **AJAX Integration**: Proper WordPress AJAX handlers for frontend submissions
 
 ## 📦 Installation
+
+### Method 1: WordPress Admin (Recommended)
+1. Download the latest release zip from [GitHub Releases](https://github.com/thewmh/event-submission-layer/releases)
+2. Go to **WordPress Admin** → **Plugins** → **Add New** → **Upload Plugin**
+3. Choose the downloaded `.zip` file and click **Install Now**
+4. Activate the plugin
+
+### Method 2: WP-CLI
+```bash
+wp plugin install https://github.com/thewmh/event-submission-layer/releases/download/v1.0.1/event-submission-layer-v1.0.1.zip --activate
+```
+
+### Method 3: Manual Installation
+1. Download and unzip the release from GitHub
+2. Upload the `event-submission-layer/` folder to `wp-content/plugins/`
+3. Activate through WordPress Admin
+
+### Method 4: Development Installation
+```bash
+cd wp-content/plugins/
+git clone https://github.com/thewmh/event-submission-layer.git event-submission-layer
+cd event-submission-layer
+npm install && npm run build
+wp plugin activate event-submission-layer
+```
+
+---
+
+# Event Submission Layer v1.0.0 - Release Notes
 
 ### Method 1: WordPress Admin (Recommended)
 1. Download the latest release zip from [GitHub Releases](https://github.com/thewmh/event-submission-layer/releases)

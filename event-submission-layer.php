@@ -1,11 +1,47 @@
 <?php
 /**
  * Plugin Name: Event Submission Layer
- * Description: Frontend event submission + management for Sugar Calendar Lite
- * Version: 1.0
+ * Plugin URI: https://github.com/thewmh/event-submission-layer
+ * Description: Frontend event submission and management for Sugar Calendar Lite. Allows users with the 'event_submitter' role to create, edit, and manage events from the frontend.
+ * Version: 1.0.1
+ * Author: William
+ * Author URI: https://wizardunicorn.ninja
+ * License: GPL v2 or later
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.html
+ * Text Domain: event-submission-layer
+ * Domain Path: /languages
+ * Requires at least: 5.0
+ * Tested up to: 6.4
+ * Requires PHP: 7.4
+ * Network: false
  */
 
 if (!defined('ABSPATH')) exit;
+
+/**
+ * Load text domain for internationalization
+ */
+add_action('plugins_loaded', 'esl_load_textdomain');
+function esl_load_textdomain() {
+    load_plugin_textdomain('event-submission-layer', false, dirname(plugin_basename(__FILE__)) . '/languages/');
+}
+
+/**
+ * Check plugin requirements
+ */
+if (version_compare(PHP_VERSION, '7.4', '<')) {
+    add_action('admin_notices', function() {
+        echo '<div class="notice notice-error"><p>' . __('Event Submission Layer requires PHP 7.4 or higher.', 'event-submission-layer') . '</p></div>';
+    });
+    return;
+}
+
+if (!function_exists('sugar_calendar_add_event')) {
+    add_action('admin_notices', function() {
+        echo '<div class="notice notice-error"><p>' . __('Event Submission Layer requires Sugar Calendar plugin to be active.', 'event-submission-layer') . '</p></div>';
+    });
+    return;
+}
 
 /**
  * 🔐 ROLE SETUP
@@ -138,6 +174,13 @@ add_action('wp_enqueue_scripts', function () {
         wp_enqueue_style('flatpickr-css', plugin_dir_url(__FILE__) . 'assets/css/flatpickr.min.css', [], '4.6.13');
         wp_enqueue_script('flatpickr-js', plugin_dir_url(__FILE__) . 'assets/js/flatpickr.min.js', [], '4.6.13', true);
         
+        // Enqueue AJAX script
+        wp_enqueue_script('esl-ajax', plugin_dir_url(__FILE__) . 'assets/js/esl-ajax.js', ['jquery'], '1.0.0', true);
+        wp_localize_script('esl-ajax', 'esl_ajax', [
+            'ajax_url' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce('esl_ajax_nonce'),
+        ]);
+        
         // Add custom script for initialization
         wp_add_inline_script('flatpickr-js', "
             document.addEventListener('DOMContentLoaded', function() {
@@ -159,6 +202,83 @@ add_action('wp_enqueue_scripts', function () {
         ");
     }
 });
+
+/**
+ * Admin menu and settings
+ */
+add_action('admin_menu', 'esl_admin_menu');
+function esl_admin_menu() {
+    add_menu_page(
+        __('Event Submission Layer', 'event-submission-layer'),
+        __('Event Submission', 'event-submission-layer'),
+        'manage_options',
+        'event-submission-layer',
+        'esl_admin_page',
+        'dashicons-calendar-alt',
+        30
+    );
+}
+
+function esl_admin_page() {
+    if (!current_user_can('manage_options')) {
+        wp_die(__('You do not have sufficient permissions to access this page.'));
+    }
+    ?>
+    <div class="wrap">
+        <h1><?php _e('Event Submission Layer Settings', 'event-submission-layer'); ?></h1>
+        <form method="post" action="options.php">
+            <?php settings_fields('esl_settings_group'); ?>
+            <?php do_settings_sections('event-submission-layer'); ?>
+            <?php submit_button(); ?>
+        </form>
+    </div>
+    <?php
+}
+
+add_action('admin_init', 'esl_register_settings');
+function esl_register_settings() {
+    register_setting('esl_settings_group', 'esl_options');
+    add_settings_section(
+        'esl_main_section',
+        __('Main Settings', 'event-submission-layer'),
+        'esl_section_callback',
+        'event-submission-layer'
+    );
+    add_settings_field(
+        'esl_enable_frontend',
+        __('Enable Frontend Submission', 'event-submission-layer'),
+        'esl_enable_frontend_callback',
+        'event-submission-layer',
+        'esl_main_section'
+    );
+    add_settings_field(
+        'esl_default_status',
+        __('Default Event Status', 'event-submission-layer'),
+        'esl_default_status_callback',
+        'event-submission-layer',
+        'esl_main_section'
+    );
+}
+
+function esl_section_callback() {
+    echo __('Configure the Event Submission Layer plugin.', 'event-submission-layer');
+}
+
+function esl_enable_frontend_callback() {
+    $options = get_option('esl_options');
+    $checked = isset($options['enable_frontend']) ? $options['enable_frontend'] : 1;
+    echo '<input type="checkbox" id="esl_enable_frontend" name="esl_options[enable_frontend]" value="1" ' . checked(1, $checked, false) . ' />';
+    echo '<label for="esl_enable_frontend">' . __('Allow users to submit events from the frontend.', 'event-submission-layer') . '</label>';
+}
+
+function esl_default_status_callback() {
+    $options = get_option('esl_options');
+    $status = isset($options['default_status']) ? $options['default_status'] : 'publish';
+    echo '<select id="esl_default_status" name="esl_options[default_status]">';
+    echo '<option value="publish" ' . selected($status, 'publish', false) . '>' . __('Publish', 'event-submission-layer') . '</option>';
+    echo '<option value="pending" ' . selected($status, 'pending', false) . '>' . __('Pending Review', 'event-submission-layer') . '</option>';
+    echo '</select>';
+}
 
 /**
  * Utility: compare Sugar Calendar event data to existing row.
@@ -227,6 +347,177 @@ function esl_event_data_matches( $event_data, $event_row ) {
 }
 
 /**
+ * Process event submission
+ */
+function esl_process_event_submission() {
+    if (!is_user_logged_in()) {
+        return ['success' => false, 'message' => __('Please log in to submit an event.', 'event-submission-layer')];
+    }
+
+    if (!isset($_POST['esl_nonce']) || !wp_verify_nonce($_POST['esl_nonce'], 'esl_submit_event')) {
+        return ['success' => false, 'message' => __('Nonce verification failed.', 'event-submission-layer')];
+    }
+
+    if (!function_exists('sugar_calendar_add_event')) {
+        return ['success' => false, 'message' => __('Sugar Calendar functions not available.', 'event-submission-layer')];
+    }
+
+    $user_id = get_current_user_id();
+
+    $event_title       = sanitize_text_field($_POST['event_title'] ?? '');
+    $event_description = sanitize_textarea_field($_POST['event_description'] ?? '');
+    $event_start_raw   = sanitize_text_field($_POST['event_start'] ?? '');
+    $event_end_raw     = sanitize_text_field($_POST['event_end'] ?? '');
+
+    // Validate inputs
+    if (empty($event_title)) {
+        return ['success' => false, 'message' => __('Event title is required.', 'event-submission-layer')];
+    }
+
+    if (empty($event_start_raw) || empty($event_end_raw)) {
+        return ['success' => false, 'message' => __('Event start and end dates are required.', 'event-submission-layer')];
+    }
+
+    $start_timestamp = strtotime($event_start_raw);
+    $end_timestamp   = strtotime($event_end_raw);
+
+    if ($start_timestamp === false) {
+        return ['success' => false, 'message' => sprintf(__('Invalid start date: %s', 'event-submission-layer'), esc_html($event_start_raw))];
+    }
+
+    if ($end_timestamp === false) {
+        return ['success' => false, 'message' => sprintf(__('Invalid end date: %s', 'event-submission-layer'), esc_html($event_end_raw))];
+    }
+
+    if ($start_timestamp > $end_timestamp) {
+        $end_timestamp = $start_timestamp;
+    }
+
+    $options = get_option('esl_options');
+    $default_status = $options['default_status'] ?? 'publish';
+
+    // Build post data for sc_event post type
+    $post_data = [
+        'post_title'   => $event_title,
+        'post_content' => $event_description,
+        'post_author'  => $user_id,
+        'post_type'    => 'sc_event',
+        'post_status'  => $default_status,
+    ];
+
+    // Update existing event
+    if (!empty($_POST['event_id'])) {
+        $event_id = intval($_POST['event_id']);
+        $post = get_post($event_id);
+
+        if (!$post) {
+            return ['success' => false, 'message' => __('Event not found.', 'event-submission-layer')];
+        }
+
+        if ($post->post_type !== 'sc_event') {
+            return ['success' => false, 'message' => __('Invalid event type.', 'event-submission-layer')];
+        }
+
+        if ($post->post_author != $user_id && !current_user_can('edit_others_events')) {
+            return ['success' => false, 'message' => __('You do not have permission to edit this event.', 'event-submission-layer')];
+        }
+
+        $post_data['ID'] = $event_id;
+        $post_update = wp_update_post($post_data);
+
+        if (is_wp_error($post_update)) {
+            return ['success' => false, 'message' => sprintf(__('Failed to update post: %s', 'event-submission-layer'), $post_update->get_error_message())];
+        }
+
+        $event_row = esl_get_sc_event_row($event_id);
+
+        // Always store in UTC for Sugar Calendar internal event table.
+        $event_data = [
+            'object_id'      => $event_id,
+            'object_type'    => 'post',
+            'object_subtype' => 'sc_event',
+            'title'          => $event_title,
+            'content'        => $event_description,
+            'status'         => $default_status,
+            'start'          => gmdate('Y-m-d H:i:s', $start_timestamp),
+            'end'            => gmdate('Y-m-d H:i:s', $end_timestamp),
+            'all_day'        => 0,
+            'start_tz'       => '',
+            'end_tz'         => '',
+        ];
+
+        if (!empty($event_row) && !empty($event_row->id)) {
+            $event_row_id = $event_row->id;
+            $updated = sugar_calendar_update_event($event_row_id, $event_data, $event_row);
+            $after_event = sugar_calendar_get_event($event_row_id);
+
+            // Check that SC event content was updated as expected.
+            if (!empty($after_event) && isset($after_event->content) && ($after_event->content !== $event_data['content'])) {
+                sugar_calendar_update_event($event_row_id, ['content' => $event_data['content']], $after_event);
+                $after_event = sugar_calendar_get_event($event_row_id);
+            }
+
+            $row_matches = esl_event_data_matches($event_data, $after_event);
+
+            if (!$updated || !$row_matches) {
+                // If no rows were changed or state hasn't synced, force by replacing.
+                sugar_calendar_delete_event($event_row_id);
+                $new_event_id = sugar_calendar_add_event($event_data);
+            }
+        } else {
+            $added_id = sugar_calendar_add_event($event_data);
+        }
+
+        // Sync post meta via Sugar Calendar back-compat keys.
+        update_post_meta($event_id, 'sc_event_date_time', $start_timestamp);
+        update_post_meta($event_id, 'sc_event_end_date_time', $end_timestamp);
+        update_post_meta($event_id, 'start', $start_timestamp);
+        update_post_meta($event_id, 'end', $end_timestamp);
+
+        return ['success' => true, 'message' => __('Event updated successfully!', 'event-submission-layer'), 'redirect' => home_url('/events-dashboard')];
+    }
+
+    // New event
+    $new_post_id = wp_insert_post($post_data);
+
+    if (is_wp_error($new_post_id)) {
+        return ['success' => false, 'message' => sprintf(__('Failed to create event: %s', 'event-submission-layer'), $new_post_id->get_error_message())];
+    }
+
+    if ($new_post_id) {
+        $event_data = [
+            'object_id'      => $new_post_id,
+            'object_type'    => 'post',
+            'object_subtype' => 'sc_event',
+            'title'          => $event_title,
+            'content'        => $event_description,
+            'status'         => $default_status,
+            'start'          => gmdate('Y-m-d H:i:s', $start_timestamp),
+            'end'            => gmdate('Y-m-d H:i:s', $end_timestamp),
+            'all_day'        => 0,
+            'start_tz'       => '',
+            'end_tz'         => '',
+        ];
+
+        $added_id = sugar_calendar_add_event($event_data);
+
+        update_post_meta($new_post_id, 'sc_event_date_time', $start_timestamp);
+        update_post_meta($new_post_id, 'sc_event_end_date_time', $end_timestamp);
+        update_post_meta($new_post_id, 'start', $start_timestamp);
+        update_post_meta($new_post_id, 'end', $end_timestamp);
+
+        if (is_wp_error($added_id)) {
+            // Log error
+            error_log('[ESL] sugar_calendar_add_event failed: ' . $added_id->get_error_message());
+        }
+
+        return ['success' => true, 'message' => __('Event created successfully!', 'event-submission-layer'), 'redirect' => home_url('/events-dashboard')];
+    }
+
+    return ['success' => false, 'message' => __('Unknown error occurred.', 'event-submission-layer')];
+}
+
+/**
  * 🚫 BLOCK ADMIN ACCESS
  */
 add_action('admin_init', function () {
@@ -243,12 +534,30 @@ add_action('pre_get_posts', function($query) {
 });
 
 /**
+ * AJAX handler for event submission
+ */
+add_action('wp_ajax_esl_submit_event', 'esl_ajax_submit_event');
+function esl_ajax_submit_event() {
+    $result = esl_process_event_submission();
+    if ($result['success']) {
+        wp_send_json_success(['redirect' => $result['redirect'], 'message' => $result['message']]);
+    } else {
+        wp_send_json_error(['message' => $result['message']]);
+    }
+}
+
+/**
  * 🧾 SHORTCODE: EVENT SUBMISSION FORM
  */
 add_shortcode('event_submit_form', function () {
 
     if (!is_user_logged_in()) {
         return '<p>Please log in to submit an event.</p>';
+    }
+
+    $options = get_option('esl_options');
+    if (empty($options['enable_frontend'])) {
+        return __('Frontend submission is disabled.', 'event-submission-layer');
     }
 
     $event_id = isset($_GET['event_id']) ? intval($_GET['event_id']) : 0;
@@ -273,7 +582,7 @@ add_shortcode('event_submit_form', function () {
     ob_start();
     ?>
 
-    <form method="post" action="">
+    <form method="post" action="" id="esl-event-form">
         <?php wp_nonce_field('esl_submit_event', 'esl_nonce'); ?>
 
         <?php if ($event_id): ?>
@@ -325,214 +634,17 @@ function esl_get_form_message() {
 }
 
 add_action('init', function () {
-
-    if (!isset($_POST['submit_event'])) {
-        return;
-    }
-
-    if (!is_user_logged_in()) {
-        error_log('[ESL] Form submission: user not logged in');
-        return;
-    }
-
-    if (!isset($_POST['esl_nonce']) || !wp_verify_nonce($_POST['esl_nonce'], 'esl_submit_event')) {
-        error_log('[ESL] Form submission: nonce verification failed');
-        return;
-    }
-
-    if (!function_exists('sugar_calendar_add_event')) {
-        error_log('[ESL] Form submission: Sugar Calendar functions not available');
-        return;
-    }
-
-    $user_id = get_current_user_id();
-
-    $event_title       = sanitize_text_field($_POST['event_title'] ?? '');
-    $event_description = sanitize_textarea_field($_POST['event_description'] ?? '');
-    $event_start_raw   = sanitize_text_field($_POST['event_start'] ?? '');
-    $event_end_raw     = sanitize_text_field($_POST['event_end'] ?? '');
-
-    error_log('[ESL] Form submission: title=' . $event_title . ', start=' . $event_start_raw . ', end=' . $event_end_raw);
-
-    // Validate inputs
-    if (empty($event_title)) {
-        esl_set_form_message('Event title is required.', 'error');
-        wp_redirect(home_url('/events-dashboard'));
-        exit;
-    }
-
-    if (empty($event_start_raw) || empty($event_end_raw)) {
-        esl_set_form_message('Event start and end dates are required.', 'error');
-        wp_redirect(home_url('/events-dashboard'));
-        exit;
-    }
-
-    $start_timestamp = strtotime($event_start_raw);
-    $end_timestamp   = strtotime($event_end_raw);
-
-    if ($start_timestamp === false) {
-        esl_set_form_message('Invalid start date: ' . esc_html($event_start_raw), 'error');
-        wp_redirect(home_url('/events-dashboard'));
-        exit;
-    }
-
-    if ($end_timestamp === false) {
-        esl_set_form_message('Invalid end date: ' . esc_html($event_end_raw), 'error');
-        wp_redirect(home_url('/events-dashboard'));
-        exit;
-    }
-
-    if ($start_timestamp > $end_timestamp) {
-        $end_timestamp = $start_timestamp;
-    }
-
-    // Build post data for sc_event post type
-    $post_data = [
-        'post_title'   => $event_title,
-        'post_content' => $event_description,
-        'post_author'  => $user_id,
-        'post_type'    => 'sc_event',
-        'post_status'  => 'publish',
-    ];
-
-    // Update existing event
-    if (!empty($_POST['event_id'])) {
-        $event_id = intval($_POST['event_id']);
-        $post = get_post($event_id);
-
-        if (!$post) {
-            esl_set_form_message('Event not found.', 'error');
-            error_log('[ESL] Update: post not found for ID ' . $event_id);
-            wp_redirect(home_url('/events-dashboard'));
+    if (isset($_POST['submit_event'])) {
+        $result = esl_process_event_submission();
+        if ($result['success']) {
+            wp_redirect($result['redirect']);
             exit;
-        }
-
-        if ($post->post_type !== 'sc_event') {
-            esl_set_form_message('Invalid event type.', 'error');
-            error_log('[ESL] Update: wrong post type for ID ' . $event_id);
-            wp_redirect(home_url('/events-dashboard'));
-            exit;
-        }
-
-        if ($post->post_author != $user_id && !current_user_can('edit_others_events')) {
-            esl_set_form_message('You do not have permission to edit this event.', 'error');
-            error_log('[ESL] Update: permission denied for user ' . $user_id . ' on event ' . $event_id);
-            wp_redirect(home_url('/events-dashboard'));
-            exit;
-        }
-
-        error_log('[ESL] Update: processing event_id=' . $event_id . ', user=' . $user_id);
-
-        $post_data['ID'] = $event_id;
-        $post_update = wp_update_post($post_data);
-
-        if (is_wp_error($post_update)) {
-            esl_set_form_message('Failed to update post: ' . $post_update->get_error_message(), 'error');
-            error_log('[ESL] Update: wp_update_post failed: ' . print_r($post_update, true));
-            wp_redirect(home_url('/events-dashboard'));
-            exit;
-        }
-
-        $event_row = esl_get_sc_event_row($event_id);
-        error_log('[ESL] Update: event_row=' . print_r($event_row, true));
-
-        // Always store in UTC for Sugar Calendar internal event table.
-        $event_data = [
-            'object_id'      => $event_id,
-            'object_type'    => 'post',
-            'object_subtype' => 'sc_event',
-            'title'          => $event_title,
-            'content'        => $event_description,
-            'status'         => 'publish',
-            'start'          => gmdate('Y-m-d H:i:s', $start_timestamp),
-            'end'            => gmdate('Y-m-d H:i:s', $end_timestamp),
-            'all_day'        => 0,
-            'start_tz'       => '',
-            'end_tz'         => '',
-        ];
-
-        if (!empty($event_row) && !empty($event_row->id)) {
-            $event_row_id = $event_row->id;
-
-            $updated = sugar_calendar_update_event($event_row_id, $event_data, $event_row);
-            error_log('[ESL] Update: sugar_calendar_update_event returned ' . var_export($updated, true));
-
-            $after_event = sugar_calendar_get_event($event_row_id);
-
-            // Check that SC event content was updated as expected.
-            if (!empty($after_event) && isset($after_event->content) && ($after_event->content !== $event_data['content'])) {
-                error_log('[ESL] Update: content mismatch after update; trying direct event update');
-                sugar_calendar_update_event($event_row_id, ['content' => $event_data['content']], $after_event);
-                $after_event = sugar_calendar_get_event($event_row_id);
-            }
-
-            $row_matches = esl_event_data_matches($event_data, $after_event);
-
-            if (!$updated || !$row_matches) {
-                // If no rows were changed or state hasn't synced, force by replacing.
-                sugar_calendar_delete_event($event_row_id);
-                $new_event_id = sugar_calendar_add_event($event_data);
-                error_log('[ESL] Update fallback replace row. deleted=' . $event_row_id . ' added=' . var_export($new_event_id, true));
-            }
         } else {
-            $added_id = sugar_calendar_add_event($event_data);
-            error_log('[ESL] Update: sugar_calendar_add_event returned ' . var_export($added_id, true));
+            esl_set_form_message($result['message'], 'error');
+            wp_redirect(home_url('/events-dashboard'));
+            exit;
         }
-
-        // Sync post meta via Sugar Calendar back-compat keys.
-        update_post_meta($event_id, 'sc_event_date_time', $start_timestamp);
-        update_post_meta($event_id, 'sc_event_end_date_time', $end_timestamp);
-        update_post_meta($event_id, 'start', $start_timestamp);
-        update_post_meta($event_id, 'end', $end_timestamp);
-
-        esl_set_form_message('Event updated successfully!', 'success');
-        wp_redirect(home_url('/events-dashboard'));
-        exit;
     }
-
-    // New event
-    $new_post_id = wp_insert_post($post_data);
-
-    if (is_wp_error($new_post_id)) {
-        esl_set_form_message('Failed to create event: ' . $new_post_id->get_error_message(), 'error');
-        error_log('[ESL] Create: wp_insert_post failed: ' . print_r($new_post_id, true));
-        wp_redirect(home_url('/events-dashboard'));
-        exit;
-    }
-
-    if ($new_post_id) {
-        $event_data = [
-            'object_id'      => $new_post_id,
-            'object_type'    => 'post',
-            'object_subtype' => 'sc_event',
-            'title'          => $event_title,
-            'content'        => $event_description,
-            'status'         => 'publish',
-            'start'          => gmdate('Y-m-d H:i:s', $start_timestamp),
-            'end'            => gmdate('Y-m-d H:i:s', $end_timestamp),
-            'all_day'        => 0,
-            'start_tz'       => '',
-            'end_tz'         => '',
-        ];
-
-        $added_id = sugar_calendar_add_event($event_data);
-
-        update_post_meta($new_post_id, 'sc_event_date_time', $start_timestamp);
-        update_post_meta($new_post_id, 'sc_event_end_date_time', $end_timestamp);
-        update_post_meta($new_post_id, 'start', $start_timestamp);
-        update_post_meta($new_post_id, 'end', $end_timestamp);
-
-        if (is_wp_error($added_id)) {
-            error_log('[ESL] Create: sugar_calendar_add_event failed: ' . print_r($added_id, true));
-        } elseif (!$added_id) {
-            error_log('[ESL] Create: sugar_calendar_add_event returned false/empty');
-        }
-
-        esl_set_form_message('Event created successfully!', 'success');
-    }
-
-    wp_redirect(home_url('/events-dashboard'));
-    exit;
 });
 
 /**
@@ -542,6 +654,11 @@ add_shortcode('events_dashboard', function () {
 
     if (!is_user_logged_in()) {
         return '<p>Please log in.</p>';
+    }
+
+    $options = get_option('esl_options');
+    if (empty($options['enable_frontend'])) {
+        return __('Frontend submission is disabled.', 'event-submission-layer');
     }
 
     $user_id = get_current_user_id();
@@ -637,7 +754,7 @@ add_shortcode('events_dashboard', function () {
             ?>
             <hr style="margin: 20px 0;" />
             <h3>Edit Event</h3>
-            <form method="post" style="max-width: 400px;">
+            <form method="post" style="max-width: 400px;" id="esl-event-form">
                 <?php wp_nonce_field('esl_submit_event', 'esl_nonce'); ?>
 
                 <input type="hidden" name="event_id" value="<?php echo $event_id; ?>" />
@@ -682,7 +799,7 @@ add_shortcode('events_dashboard', function () {
         ?>
         <hr style="margin: 20px 0;" />
         <h3>Add New Event</h3>
-        <form method="post" style="max-width: 400px;">
+        <form method="post" style="max-width: 400px;" id="esl-event-form">
             <?php wp_nonce_field('esl_submit_event', 'esl_nonce'); ?>
 
             <div style="margin-bottom: 12px;">

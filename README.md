@@ -12,6 +12,10 @@ A WordPress plugin that provides a frontend event submission and management syst
 - **Date/Time Picker**: Flatpickr-powered date/time selection with enhanced UX
 - **Security**: Nonce verification, input sanitization, and permission checks
 - **Responsive Design**: Works on desktop and mobile devices
+- **Admin Settings Page**: Configure plugin options including frontend enable/disable and default event status
+- **AJAX Submissions**: No page reloads on form submissions for better UX
+- **Internationalization**: Translation-ready with text domain support
+- **Requirement Validation**: Checks for PHP version and dependencies on activation
 
 ### 🚧 Planned Enhancements
 
@@ -25,10 +29,20 @@ A WordPress plugin that provides a frontend event submission and management syst
 - **Advanced Features**: Recurring events, locations, email notifications
 - **Code Quality**: Modular structure, settings page, REST API
 
-#### Future Enhancements (Advanced)
-- **Analytics**: Admin dashboard with statistics
-- **Integrations**: Google Calendar sync, webhooks
-- **Accessibility**: ARIA labels, keyboard navigation, i18n
+## Admin Settings
+
+The plugin includes an admin settings page accessible via **WordPress Admin** → **Event Submission**. Available options:
+
+- **Enable Frontend Submission**: Toggle frontend event submission on/off
+- **Default Event Status**: Set the default status for new events (Publish or Pending Review)
+
+## Requirements
+
+- WordPress 5.0 or higher
+- PHP 7.4 or higher
+- Sugar Calendar Lite plugin (active)
+
+The plugin will display admin notices if requirements are not met.
 
 ## Installation
 

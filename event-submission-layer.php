@@ -3,7 +3,7 @@
  * Plugin Name: Event Submission Layer
  * Plugin URI: https://github.com/thewmh/event-submission-layer
  * Description: Frontend event submission and management for Sugar Calendar Lite. Allows users with the 'event_submitter' role to create, edit, and manage events from the frontend.
- * Version: 1.0.1
+ * Version: 1.0.2
  * Author: William
  * Author URI: https://wizardunicorn.ninja
  * License: GPL v2 or later

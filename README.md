@@ -36,6 +36,64 @@ The plugin includes an admin settings page accessible via **WordPress Admin** â†
 - **Enable Frontend Submission**: Toggle frontend event submission on/off
 - **Default Event Status**: Set the default status for new events (Publish or Pending Review)
 
+## User Guide for Event Submitters
+
+If your WordPress administrator has assigned you the "Event Submitter" role, you can create and manage events directly from the website's frontend without needing to access the WordPress admin area. This guide explains how to use the event management features in simple, step-by-step instructions.
+
+### Important Notes Before You Start
+- You can only view and manage events that you have created yourself
+- All dates and times are displayed in a user-friendly format, but are stored in UTC (Coordinated Universal Time) internally
+- Make sure you're logged in to your account before trying to access event features
+- If you encounter any issues, contact your site administrator
+
+### Accessing Your Events Dashboard
+Your personal events dashboard is available at: `https://yoursite.com/events-dashboard`
+
+This page shows:
+- A list of all events you've created
+- Options to edit or delete each event
+- A button to add new events
+- Any success or error messages from your recent actions
+
+### How to Add a New Event
+1. **Navigate to the Add Event Page**: Click the "Add New Event" button on your dashboard, or visit: `https://yoursite.com/add-event`
+2. **Fill in the Event Details**:
+   - **Event Title**: Enter a clear, descriptive name for your event
+   - **Description**: Provide details about what the event is about (optional but recommended)
+   - **Start Date & Time**: Click on the date/time field and select when your event begins
+   - **End Date & Time**: Select when your event ends (must be after the start time)
+3. **Submit Your Event**: Click the "Submit Event" button to save
+4. **Confirmation**: You'll be redirected back to your dashboard with a success message
+
+**Tip**: The date/time picker shows dates in a format like "April 15, 2026 at 2:30 PM" for easy reading, but stores the exact time you selected.
+
+### How to Edit an Existing Event
+1. **Find the Event**: On your dashboard, locate the event you want to change
+2. **Click Edit**: Click the "Edit" link next to that event
+3. **Make Changes**: Update any of the fields (title, description, dates) as needed
+4. **Save Changes**: Click the "Update Event" button
+5. **Confirmation**: You'll return to your dashboard with a confirmation message
+
+### How to Delete an Event
+1. **Find the Event**: Locate the event you want to remove on your dashboard
+2. **Click Delete**: Click the "Delete" link next to the event
+3. **Confirm Deletion**: A confirmation dialog will appear - click OK to proceed
+4. **Confirmation**: The event will be permanently removed, and you'll see a success message
+
+**Warning**: Deleted events cannot be recovered. Make sure you really want to remove the event before confirming.
+
+### Troubleshooting Common Issues
+- **"Please log in to submit an event"**: Make sure you're logged in to your account
+- **"Frontend submission is disabled"**: Contact your administrator - they may have temporarily disabled event submission
+- **Date/time errors**: Ensure the end time is after the start time, and that you've selected valid dates
+- **Permission errors**: You can only edit or delete events you've created yourself
+
+### Getting Help
+If you need assistance:
+- Check this guide again for step-by-step instructions
+- Contact your site administrator for technical support
+- Ensure your browser is up to date for the best experience with the date/time picker
+
 ## Requirements
 
 - WordPress 5.0 or higher

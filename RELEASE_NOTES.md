@@ -1,11 +1,17 @@
-# Event Submission Layer v1.0.1 - Release Notes
+# Event Submission Layer v1.0.2 - Release Notes
 
 **Release Date:** April 9, 2026  
-**Version:** 1.0.1  
+**Version:** 1.0.2  
 **Repository:** [thewmh/event-submission-layer](https://github.com/thewmh/event-submission-layer)  
 **License:** GPL-2.0-or-later
 
-## ✨ New Features
+## 📚 Documentation
+
+- **User Guide**: Added comprehensive user guide for Event Submitters with step-by-step instructions for adding, editing, and deleting events, including URLs and troubleshooting tips
+
+---
+
+# Event Submission Layer v1.0.1 - Release Notes
 
 - **Admin Settings Page**: Added a comprehensive settings page in WordPress admin for configuring plugin options
 - **AJAX Form Submission**: Implemented AJAX-powered form submissions for better user experience without page reloads

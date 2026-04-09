@@ -161,7 +161,18 @@ npm run build
 
 # Create zip file
 cd dist && zip -r ../event-submission-layer-v1.0.0.zip .
+
+# Or use the GitHub Actions artifact from the Actions tab
 ```
+
+### Continuous Integration
+This repository uses GitHub Actions for automated building and testing. Every push to `main`/`master` will:
+
+- Install dependencies
+- Build the plugin
+- Upload the distributable artifact
+
+Check the Actions tab in GitHub to download the latest build.
 
 ### Key Functions
 - `esl_add_role()`: Creates the event submitter role

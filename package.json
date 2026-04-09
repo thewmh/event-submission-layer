@@ -7,7 +7,7 @@
     "build": "npm run clean && npm run copy-assets && npm run copy-plugin",
     "clean": "rm -rf dist/",
     "copy-assets": "mkdir -p dist/assets/css dist/assets/js && cp node_modules/flatpickr/dist/flatpickr.min.css dist/assets/css/ && cp node_modules/flatpickr/dist/flatpickr.min.js dist/assets/js/",
-    "copy-plugin": "cp event-manager.php dist/ && cp README.md dist/",
+    "copy-plugin": "cp event-manager.php dist/ && cp README.md dist/ && cp RELEASE_NOTES.md dist/",
     "dev": "npm run build && echo 'Plugin built successfully in dist/'",
     "watch": "npm run build && echo 'Watching for changes...'",
     "prepublishOnly": "npm run build",

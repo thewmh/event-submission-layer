@@ -1,3 +1,35 @@
+# Event Submission Layer v1.0.4 - Release Notes
+
+**Release Date:** April 10, 2026
+**Version:** 1.0.4
+**Repository:** [thewmh/event-submission-layer](https://github.com/thewmh/event-submission-layer)
+**License:** GPL-2.0-or-later
+
+## Fixes
+
+- **Resolved plugin load-order issues**: The Sugar Calendar dependency check previously ran at PHP parse time, before all plugins had loaded. This caused a file-level `return` that silently prevented all hooks from registering — including the admin-access redirect for `event_submitter` users and the plugin activation hook. Moved the check to `plugins_loaded` where it belongs.
+- **Fixed admin error banner appearing on every page**: The Sugar Calendar dependency error was showing as a persistent, site-wide admin notice even when Sugar Calendar was active (because the check fired too early). Replaced with a one-time dismissible notice that only appears when Sugar Calendar is genuinely absent, and automatically resets if Sugar Calendar is removed and re-added later.
+- **Fixed `event_submitter` users seeing the WP dashboard**: The `admin_init` redirect hook was never registering due to the load-order bug above. This is now resolved.
+- **Fixed role capability sync for existing installs**: `esl_ensure_role_caps()` was defined but never hooked, making it dead code. It is now called on `plugins_loaded` to keep role capabilities in sync across code updates without requiring plugin reactivation. It also removes the `read_private_pages` capability from any installs where it was granted directly on the role (v1.0.1 behaviour), ensuring the scoped `user_has_cap` filter introduced in v1.0.3 is the sole access control path.
+- **Fixed CSRF vulnerability on event deletion**: Delete links now include a per-event WordPress nonce via `wp_nonce_url()`. The delete handler verifies the nonce before any database operation and calls `wp_die()` on failure, preventing CSRF attacks where a crafted link could silently delete a user's event.
+- **Removed redundant AJAX nonce**: An `esl_ajax_nonce` was being generated, localized to the frontend, and sent as a `security` field — but was never verified server-side. The form's existing `esl_nonce` (serialized via `FormData`) is the verified credential. Removed the unused nonce from `wp_localize_script` and `esl-ajax.js`.
+- **Fixed uninstall page cleanup**: Options were deleted before their values were read, causing `wp_delete_post()` to always receive `false` — meaning plugin-created pages were never actually removed on uninstall. Read order is now corrected. Also cleans up the new `esl_sc_notice_dismissed` option.
+- **Added missing output escaping**: Hidden `event_id` input in the dashboard edit form now uses `esc_attr()`, aligning with WordPress coding standards.
+
+## Planned Enhancements
+
+The following improvements have been identified and are deferred to a future release:
+
+- **Modularize the plugin**: Extract the single-file architecture into separate include files (`roles.php`, `pages.php`, `admin.php`, `shortcodes.php`, `processing.php`, `helpers.php`). Deferred until basic test coverage exists to validate the refactor safely.
+- **Add test coverage**: No PHPUnit or JS tests currently exist. Priority is unit tests for `esl_process_event_submission()` and the role/cap logic.
+- **Pagination on events dashboard**: The dashboard fetches all user events with `posts_per_page => -1`, which will degrade performance at scale.
+- **Extract inline styles to a CSS file**: All UI styling is currently via inline `style` attributes, making the interface difficult to customise from themes. Introduce `assets/css/esl-plugin.css`.
+- **Remove committed build artifact**: `event-submission-layer-v1.0.0.zip` is tracked in git and should be removed; add `*.zip` to `.gitignore`.
+- **Strict comparison for author checks**: Several author ID comparisons use `==` instead of `===`. Convert to `(int) $post->post_author === $user_id`.
+- **Fix misleading `dev`/`watch` npm scripts**: Both currently just run `npm run build` with no file watching. Either implement actual watch behaviour or remove the aliases.
+
+---
+
 # Event Submission Layer v1.0.3 - Release Notes
 
 **Release Date:** April 9, 2026  

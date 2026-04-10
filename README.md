@@ -1,355 +1,358 @@
 # Event Submission Layer for Sugar Calendar
 
-A WordPress plugin that provides a frontend event submission and management system for Sugar Calendar Lite. Allows users with the "Event Submitter" role to create, edit, and manage their events through a user-friendly dashboard.
+A WordPress plugin that provides a frontend event submission and management system for Sugar Calendar Lite. Users with the custom "Event Submitter" role can create, edit, and delete their own events from the site frontend — no WordPress admin access required.
 
 ## Features
 
-### ✅ Current Features
-- **Role-based Access Control**: Custom "Event Submitter" role with specific capabilities
-- **Frontend Event Submission**: Clean forms for creating and editing events
-- **User Dashboard**: Private dashboard for managing personal events
-- **Sugar Calendar Integration**: Full integration with Sugar Calendar Lite's event system
-- **Date/Time Picker**: Flatpickr-powered date/time selection with enhanced UX
-- **Security**: Nonce verification, input sanitization, and permission checks
-- **Responsive Design**: Works on desktop and mobile devices
-- **Admin Settings Page**: Configure plugin options including frontend enable/disable and default event status
-- **AJAX Submissions**: No page reloads on form submissions for better UX
-- **Internationalization**: Translation-ready with text domain support
-- **Requirement Validation**: Checks for PHP version and dependencies on activation
-
-### 🚧 Planned Enhancements
-
-#### High Priority (Immediate Impact)
-- **Security Enhancements**: Rate limiting, advanced validation, file upload support
-- **UX Improvements**: Loading states, better error handling, confirmation dialogs
-- **Core Features**: Event categories, status management, bulk actions
-
-#### Medium Priority (Quality of Life)
-- **Performance**: Pagination, caching, database optimization
-- **Advanced Features**: Recurring events, locations, email notifications
-- **Code Quality**: Modular structure, settings page, REST API
-
-## Admin Settings
-
-The plugin includes an admin settings page accessible via **WordPress Admin** → **Event Submission**. Available options:
-
-- **Enable Frontend Submission**: Toggle frontend event submission on/off
-- **Default Event Status**: Set the default status for new events (Publish or Pending Review)
-
-## User Guide for Event Submitters
-
-If your WordPress administrator has assigned you the "Event Submitter" role, you can create and manage events directly from the website's frontend without needing to access the WordPress admin area. This guide explains how to use the event management features in simple, step-by-step instructions.
-
-### Important Notes Before You Start
-- You can only view and manage events that you have created yourself
-- All dates and times are displayed in a user-friendly format, but are stored in UTC (Coordinated Universal Time) internally
-- Make sure you're logged in to your account before trying to access event features
-- If you encounter any issues, contact your site administrator
-
-### Accessing Your Events Dashboard
-Your personal events dashboard is available at: `https://yoursite.com/events-dashboard`
-
-This page shows:
-- A list of all events you've created
-- Options to edit or delete each event
-- A button to add new events
-- Any success or error messages from your recent actions
-
-### How to Add a New Event
-1. **Navigate to the Add Event Page**: Click the "Add New Event" button on your dashboard, or visit: `https://yoursite.com/add-event`
-2. **Fill in the Event Details**:
-   - **Event Title**: Enter a clear, descriptive name for your event
-   - **Description**: Provide details about what the event is about (optional but recommended)
-   - **Start Date & Time**: Click on the date/time field and select when your event begins
-   - **End Date & Time**: Select when your event ends (must be after the start time)
-3. **Submit Your Event**: Click the "Submit Event" button to save
-4. **Confirmation**: You'll be redirected back to your dashboard with a success message
-
-**Tip**: The date/time picker shows dates in a format like "April 15, 2026 at 2:30 PM" for easy reading, but stores the exact time you selected.
-
-### How to Edit an Existing Event
-1. **Find the Event**: On your dashboard, locate the event you want to change
-2. **Click Edit**: Click the "Edit" link next to that event
-3. **Make Changes**: Update any of the fields (title, description, dates) as needed
-4. **Save Changes**: Click the "Update Event" button
-5. **Confirmation**: You'll return to your dashboard with a confirmation message
-
-### How to Delete an Event
-1. **Find the Event**: Locate the event you want to remove on your dashboard
-2. **Click Delete**: Click the "Delete" link next to the event
-3. **Confirm Deletion**: A confirmation dialog will appear - click OK to proceed
-4. **Confirmation**: The event will be permanently removed, and you'll see a success message
-
-**Warning**: Deleted events cannot be recovered. Make sure you really want to remove the event before confirming.
-
-### Troubleshooting Common Issues
-- **"Please log in to submit an event"**: Make sure you're logged in to your account
-- **"Frontend submission is disabled"**: Contact your administrator - they may have temporarily disabled event submission
-- **Date/time errors**: Ensure the end time is after the start time, and that you've selected valid dates
-- **Permission errors**: You can only edit or delete events you've created yourself
-
-### Getting Help
-If you need assistance:
-- Check this guide again for step-by-step instructions
-- Contact your site administrator for technical support
-- Ensure your browser is up to date for the best experience with the date/time picker
+- **Role-based access control** — Custom `event_submitter` role with scoped Sugar Calendar capabilities; admin access is blocked and users are redirected to the frontend dashboard
+- **Frontend event submission** — Clean form for creating and editing events with Flatpickr-powered date/time picker (15-minute increments, human-readable format)
+- **User dashboard** — Private dashboard listing all of the user's events with edit and delete actions
+- **Sugar Calendar integration** — Writes directly to Sugar Calendar Lite's post type and custom event table, with a verify-and-retry sync mechanism on updates
+- **AJAX form submission** — Events are submitted without page reload; falls back to standard POST if JavaScript is unavailable
+- **Admin settings page** — Configure frontend enable/disable and default event status (Publish or Pending Review) via **WordPress Admin → Event Submission**
+- **Dependency notice** — One-time dismissible admin notice if Sugar Calendar is not active; resets automatically if Sugar Calendar is later removed and re-added
+- **Internationalization** — Translation-ready with text domain `event-submission-layer`
+- **Automatic page creation** — Creates the `/events-dashboard` and `/add-event` private pages on activation
+- **Clean uninstall** — Removes all options, pages, roles, and transients on plugin deletion
 
 ## Requirements
 
 - WordPress 5.0 or higher
 - PHP 7.4 or higher
-- Sugar Calendar Lite plugin (active)
-
-The plugin will display admin notices if requirements are not met.
+- [Sugar Calendar Lite](https://wordpress.org/plugins/sugar-calendar-lite/) (must be active)
 
 ## Installation
 
-### Method 1: WordPress Admin (Recommended for End Users)
+### Method 1: WordPress Admin (Recommended)
+
 1. Download the latest release zip from [GitHub Releases](https://github.com/thewmh/event-submission-layer/releases)
-2. Go to WordPress Admin → **Plugins** → **Add New** → **Upload Plugin**
+2. Go to **WordPress Admin → Plugins → Add New → Upload Plugin**
 3. Choose the downloaded `.zip` file and click **Install Now**
 4. Activate the plugin
 
-### Method 2: WP-CLI (For Developers)
-```bash
-# Install from GitHub release
-wp plugin install https://github.com/thewmh/event-submission-layer/releases/download/v1.0.1/event-submission-layer-v1.0.1.zip --activate
+### Method 2: WP-CLI
 
-# Or install from local build
-wp plugin install /path/to/event-submission-layer-v1.0.1.zip --activate
+```bash
+wp plugin install https://github.com/thewmh/event-submission-layer/releases/download/v1.0.4/event-submission-layer-v1.0.4.zip --activate
 ```
 
 ### Method 3: Manual Installation
-1. Download and unzip the release from GitHub
+
+1. Download and unzip the latest release from [GitHub Releases](https://github.com/thewmh/event-submission-layer/releases)
 2. Upload the `event-submission-layer/` folder to `wp-content/plugins/`
-3. Go to WordPress Admin → **Plugins** and activate
+3. Go to **WordPress Admin → Plugins** and activate
 
 ### Method 4: Development Installation
+
 ```bash
-# Clone repository
 cd wp-content/plugins/
 git clone https://github.com/thewmh/event-submission-layer.git event-submission-layer
 cd event-submission-layer
-
-# Install dependencies and build
-npm install
-npm run build
-
-# Activate in WordPress
+npm install && npm run build
 wp plugin activate event-submission-layer
 ```
 
-### Prerequisites
-- WordPress 6.2+
-- PHP 7.4+
-- Sugar Calendar Lite plugin
-
-## Distribution
-
-### GitHub Releases
-When you create a new release on GitHub:
-1. Go to **Releases** → **Create a new release**
-2. Tag version: `v1.0.0`
-3. Title: `Event Submission Layer v1.0.0`
-4. Description: Release notes
-5. **Publish release**
-
-GitHub Actions will automatically:
-- Build the plugin
-- Create the distribution zip
-- Attach it to the release
-
-### WordPress.org (Future)
-For official WordPress.org distribution:
-1. Ensure GPL-2.0+ license compliance
-2. Remove development files (`.github/`, `package.json`, etc.)
-3. Submit through [WordPress Plugin Directory](https://wordpress.org/plugins/developers/)
-
-## Usage
-
-### For Event Submitters
-1. **Access Dashboard**: Visit `/events-dashboard` (created automatically)
-2. **Add Events**: Click "Add New Event" to create events
-3. **Manage Events**: Edit or delete your events from the dashboard
-
-### For Administrators
-1. **User Management**: Assign "Event Submitter" role to users
-2. **Monitor Activity**: Check logs for submission activity
-3. **Content Management**: Events appear in Sugar Calendar and WordPress admin
-
 ## Configuration
 
-### Page URLs
-- **Events Dashboard**: `/events-dashboard` (private page)
-- **Add Event Form**: `/add-event` (private page)
+### Admin Settings
 
-### User Roles
-- **Event Submitter**: Can create, edit, delete their own events
-- **Administrator**: Full access to all events and settings
+Go to **WordPress Admin → Event Submission** to configure:
+
+| Setting | Description |
+|---------|-------------|
+| **Enable Frontend Submission** | Toggle event submission and dashboard on/off for all event submitters |
+| **Default Event Status** | Set whether new events are published immediately or held as Pending Review |
+
+### Auto-Created Pages
+
+On activation the plugin creates two private WordPress pages:
+
+| Page | URL | Content |
+|------|-----|---------|
+| Events Dashboard | `/events-dashboard` | `[events_dashboard]` shortcode |
+| Add New Event | `/add-event` | `[event_submit_form]` shortcode |
+
+Both pages are set to `private` status and are only accessible to logged-in users with the `event_submitter` role.
+
+### User Roles & Capabilities
+
+The `event_submitter` role is created on activation and removed on deactivation. It grants:
+
+- `read` — basic WordPress read access
+- Sugar Calendar capabilities: `read_event`, `edit_event`, `delete_event`, `edit_events`, `publish_events`, `read_private_events`, `edit_private_events`, `edit_published_events`, `create_events`, `delete_events`, `delete_published_events`
+
+Access to the two private plugin pages is granted via a scoped `user_has_cap` filter rather than a blanket `read_private_pages` capability, so event submitters cannot read other private pages on the site.
+
+Role capabilities are synced from code on every `plugins_loaded` without requiring plugin reactivation.
+
+## User Guide for Event Submitters
+
+If your WordPress administrator has assigned you the "Event Submitter" role, you can create and manage events directly from the website frontend without needing to access the WordPress admin area.
+
+### Important Notes
+
+- You can only view and manage events that you have created yourself
+- All dates and times are stored in UTC internally; the date picker displays them in your local format
+- You must be logged in to access any event features
+- Contact your site administrator if you encounter any issues
+
+### Accessing Your Dashboard
+
+Your events dashboard is at: `https://yoursite.com/events-dashboard`
+
+It shows:
+- All events you have created with edit and delete actions
+- An "Add New Event" button
+- Success or error messages from recent actions
+
+### Adding an Event
+
+1. Click **Add New Event** on your dashboard, or visit `/add-event`
+2. Fill in:
+   - **Event Title** (required)
+   - **Description** (optional)
+   - **Start Date & Time** (required)
+   - **End Date & Time** (required)
+3. Click **Submit Event**
+4. You'll be redirected to your dashboard with a confirmation message
+
+### Editing an Event
+
+1. On your dashboard, click **Edit** next to the event
+2. Update any fields as needed
+3. Click **Update Event**
+4. You'll return to your dashboard with a confirmation message
+
+### Deleting an Event
+
+1. On your dashboard, click **Delete** next to the event
+2. Confirm the deletion in the dialog
+3. You'll be redirected to your dashboard with a confirmation message
+
+> **Warning:** Deleted events cannot be recovered.
+
+### Troubleshooting
+
+| Message | Cause |
+|---------|-------|
+| "Please log in to submit an event" | You are not logged in |
+| "Frontend submission is disabled" | An administrator has disabled event submission in the plugin settings |
+| "Event submission is currently unavailable" | Sugar Calendar is not active — contact your administrator |
+| "You do not have permission to edit this event" | You can only edit events you created |
+| Date/time errors | Ensure end time is after start time and both fields are filled |
+
+## Uninstall Behavior
+
+When the plugin is deleted via **WordPress Admin → Plugins**, the following is cleaned up:
+
+- Plugin options (`esl_add_event_page_id`, `esl_events_dashboard_page_id`, `esl_options`, `esl_sc_notice_dismissed`)
+- The two auto-created pages (`/events-dashboard`, `/add-event`)
+- The `event_submitter` role
+- All `esl_form_message_*` transients
 
 ## Technical Details
 
 ### Dependencies
-- **Sugar Calendar Lite**: Core event management
-- **Flatpickr**: Date/time picker (bundled)
-- **WordPress Core**: User roles, post types, nonces
+
+| Dependency | Version | Source |
+|------------|---------|--------|
+| Sugar Calendar Lite | Required | WordPress plugin (external) |
+| Flatpickr | ^4.6.13 | Bundled via npm |
+| jQuery | WordPress bundled | WordPress core |
 
 ### Database
-- Uses WordPress posts table (`sc_event` post type)
-- Sugar Calendar's custom event table for date/time data
-- WordPress user meta for temporary messages
+
+- Events are stored as `sc_event` posts in the WordPress posts table
+- Date/time data is written to Sugar Calendar's custom event table via `sugar_calendar_add_event()` / `sugar_calendar_update_event()`
+- Post meta keys `sc_event_date_time`, `sc_event_end_date_time`, `start`, `end` are kept in sync for back-compat
+- Flash messages (success/error after redirects) use WordPress transients with a 60-second TTL
+- Plugin configuration is stored in the `esl_options` option via the WordPress Settings API
 
 ### Security
-- Nonce verification on all forms
-- Input sanitization and validation
-- Permission checks for all operations
-- CSRF protection
+
+| Protection | Implementation |
+|-----------|----------------|
+| Form submission CSRF | `wp_nonce_field()` / `wp_verify_nonce()` with action `esl_submit_event` |
+| Event deletion CSRF | `wp_nonce_url()` / `wp_verify_nonce()` with per-event action `esl_delete_event_{ID}` |
+| Input sanitization | `sanitize_text_field()`, `sanitize_textarea_field()` on all POST input |
+| Output escaping | `esc_html()`, `esc_attr()`, `esc_url()`, `esc_textarea()` on all output |
+| Permission checks | Author ownership verified before edit/delete; `current_user_can()` for capability checks |
+| Admin access | `event_submitter` users are redirected from wp-admin to `/events-dashboard` via `admin_init` |
+| Private page access | Scoped via `user_has_cap` filter — only grants access to the two plugin pages |
+
+### File Structure
+
+```
+event-submission-layer/
+├── .github/
+│   └── workflows/
+│       └── build.yml               # GitHub Actions CI/CD
+├── assets/
+│   └── js/
+│       └── esl-ajax.js             # Frontend AJAX form handler
+├── event-submission-layer.php      # Main plugin file (all server-side logic)
+├── uninstall.php                   # Cleanup on plugin deletion
+├── package.json                    # npm config and build scripts
+├── package-lock.json
+├── README.md
+└── RELEASE_NOTES.md                # Detailed per-version changelog
+```
+
+Built output (`dist/`) and dependencies (`node_modules/`) are not committed.
+
+### Key Functions
+
+| Function | Description |
+|----------|-------------|
+| `esl_add_role()` | Creates the `event_submitter` role with all required capabilities |
+| `esl_ensure_role_caps()` | Syncs role capabilities from code on `plugins_loaded`; removes legacy `read_private_pages` |
+| `esl_create_plugin_pages()` | Creates the dashboard and add-event private pages on activation |
+| `esl_get_add_event_page_url()` | Resolves the add-event page URL with multiple fallbacks |
+| `esl_process_event_submission()` | Core create/update handler — validates, creates/updates WP post, syncs Sugar Calendar event table |
+| `esl_get_sc_event_row()` | Fetches the Sugar Calendar event row for a post ID with two fallback strategies |
+| `esl_event_data_matches()` | Compares expected event data against an SC event row field-by-field |
+| `esl_set_form_message()` | Stores a flash message in a transient for display after redirect |
+| `esl_get_form_message()` | Retrieves and deletes the flash message transient |
+| `esl_allow_private_plugin_pages()` | `user_has_cap` filter — scopes private page access to plugin pages only |
+| `esl_admin_menu()` / `esl_admin_page()` | Registers the admin settings menu and page |
+| `esl_register_settings()` | Registers plugin settings via the WordPress Settings API |
+
+### Hooks & Actions
+
+| Hook | Type | Purpose |
+|------|------|---------|
+| `plugins_loaded` | action | Sugar Calendar dependency check + dismissible notice; role cap sync |
+| `register_activation_hook` | — | Creates role and pages on activation |
+| `register_deactivation_hook` | — | Removes the `event_submitter` role on deactivation |
+| `user_has_cap` | filter | Scopes `read_private_pages` to plugin pages only for event submitters |
+| `wp_enqueue_scripts` | action | Loads Flatpickr and esl-ajax.js on plugin pages only |
+| `admin_menu` | action | Registers the Event Submission settings menu |
+| `admin_init` | action | Registers settings; redirects event submitters away from wp-admin |
+| `pre_get_posts` | action | Includes private posts in the dashboard query for event submitters |
+| `wp_ajax_esl_submit_event` | action | AJAX handler for event form submission |
+| `wp_ajax_esl_dismiss_sc_notice` | action | AJAX handler for dismissing the SC dependency notice |
+| `init` | action | Handles traditional (non-AJAX) form POST submission |
+| `template_redirect` | action | Handles event deletion before page output begins |
+| `shortcode: event_submit_form` | — | Renders the event create/edit form |
+| `shortcode: events_dashboard` | — | Renders the user event dashboard |
 
 ## Development
 
 ### Prerequisites
+
 - Node.js 14+
-- npm or yarn
-- WordPress 6.2+
+- npm
+- WordPress 5.0+
 - PHP 7.4+
-- Sugar Calendar Lite
+- Sugar Calendar Lite (active)
 
 ### Setup
+
 ```bash
-# Clone the repository
 git clone https://github.com/thewmh/event-submission-layer.git event-submission-layer
 cd event-submission-layer
-
-# Install dependencies
 npm install
-
-# Build the plugin
 npm run build
 ```
 
-### Development Workflow
+### Build
+
 ```bash
-# Install dependencies and build assets
-npm run install-assets
-
-# Development build
-npm run dev
-
-# Production build
-npm run build
-```
-
-### File Structure
-```
-event-submission-layer/
-├── event-submission-layer.php          # Main plugin file
-├── package.json               # NPM configuration and scripts
-├── README.md                  # Documentation
-├── .gitignore                 # Git ignore rules
-├── node_modules/              # NPM dependencies (not committed)
-├── dist/                      # Built plugin (not committed)
-│   ├── event-submission-layer.php      # Plugin file
-│   ├── README.md             # Documentation
-│   └── assets/               # Bundled assets
-│       ├── css/
-│       │   └── flatpickr.min.css
-│       └── js/
-│           └── flatpickr.min.js
-└── [source files for development]
-```
-
-### Build Process
-The build process creates a clean, distributable plugin in the `dist/` directory:
-
-1. **Clean**: Removes old build artifacts
-2. **Copy Assets**: Copies Flatpickr from `node_modules/` to `dist/assets/`
-3. **Copy Plugin**: Copies core plugin files to `dist/`
-
-The `dist/` folder contains everything needed for installation and can be zipped for distribution.
-
-### Distribution
-```bash
-# Build for distribution
+# Full build (clean + copy assets + copy plugin files to dist/)
 npm run build
 
-# Create zip file
-cd dist && zip -r ../event-submission-layer-v1.0.1.zip .
+# Copy Flatpickr assets only
+npm run copy-assets
+```
 
-# Or use the GitHub Actions artifact from the Actions tab
+The build produces a `dist/` directory containing the installable plugin:
+
+```
+dist/
+├── event-submission-layer.php
+├── README.md
+├── RELEASE_NOTES.md
+└── assets/
+    ├── css/
+    │   └── flatpickr.min.css
+    └── js/
+        └── flatpickr.min.js
 ```
 
 ### Continuous Integration
-This repository uses GitHub Actions for automated building and testing. Every push to `main`/`master` will:
 
-- Install dependencies
-- Build the plugin
-- Upload the distributable artifact
+GitHub Actions runs on every push to `main`/`master` and on pull requests:
 
-Check the Actions tab in GitHub to download the latest build.
+1. Install dependencies (`npm ci`)
+2. Build (`npm run build`)
+3. Upload `dist/` as a workflow artifact (30-day retention)
 
-### Key Functions
-- `esl_add_role()`: Creates the event submitter role
-- `esl_create_plugin_pages()`: Sets up required pages
-- `event_submit_form` shortcode: Event creation/editing form
-- `events_dashboard` shortcode: User event management
+On a published GitHub Release, the zip is automatically attached as a release asset.
 
-### Hooks & Filters
-- `wp_enqueue_scripts`: Loads Flatpickr assets
-- `admin_init`: Blocks admin access for submitters
-- `pre_get_posts`: Modifies dashboard queries
-- `init`: Processes form submissions
+### Creating a Release
 
-## Enhancement Roadmap
+1. Go to **Releases → Draft a new release**
+2. Set the tag to `v1.0.x`
+3. Publish — GitHub Actions will build and attach the zip automatically
 
-### Phase 1: Security & UX (Week 1-2)
-- [ ] Rate limiting for form submissions
-- [ ] Advanced input validation
-- [ ] File upload support for event images
-- [ ] Loading states and better feedback
-- [ ] Confirmation dialogs (SweetAlert2)
+## Planned Enhancements
 
-### Phase 2: Core Features (Week 3-4)
-- [ ] Event categories and tags
-- [ ] Event status management (draft/published)
-- [ ] Bulk actions (delete multiple events)
-- [ ] Pagination for event lists
-- [ ] Search and filter functionality
+- **Modularize the plugin** — Split the single-file architecture into separate include files (`roles.php`, `pages.php`, `admin.php`, `shortcodes.php`, `processing.php`, `helpers.php`). Deferred until basic test coverage exists.
+- **Test coverage** — No tests currently exist. Priority is PHPUnit tests for `esl_process_event_submission()` and role/cap logic.
+- **Dashboard pagination** — The dashboard query uses `posts_per_page => -1`; needs pagination for users with many events.
+- **CSS file** — All UI styling is currently inline. Extract to `assets/css/esl-plugin.css` to allow theme customisation.
+- **Strict comparison for author checks** — Several `==` comparisons should be `(int) $post->post_author === $user_id`.
+- **Rate limiting** — No submission rate limiting currently exists.
+- **Event categories** — Sugar Calendar taxonomy support.
+- **Email notifications** — Notify admins on new event submission.
+- **Recurring events** — Not currently supported.
 
-### Phase 3: Performance & Quality (Week 5-6)
-- [ ] Database query optimization
-- [ ] Caching implementation
-- [ ] Modular code structure
-- [ ] Settings page for admins
-- [ ] REST API endpoints
+## Changelog
 
-### Phase 4: Advanced Features (Week 7-8+)
-- [ ] Recurring events
-- [ ] Event locations/venues
-- [ ] Email notifications
-- [ ] Admin analytics dashboard
-- [ ] Third-party integrations
+### 1.0.4
+- Fixed plugin load-order bug where the Sugar Calendar dependency check ran at PHP parse time, blocking all hooks from registering (root cause of: admin error banner on every page, event_submitter users seeing the WP dashboard, and activation hook not running)
+- Replaced persistent error banner with a one-time dismissible admin notice for missing Sugar Calendar dependency
+- Fixed `event_submitter` users being shown the WP dashboard instead of redirected to `/events-dashboard`
+- Wired up `esl_ensure_role_caps()` to `plugins_loaded` (was dead code); also removes legacy `read_private_pages` from existing installs
+- Added CSRF nonce verification to event deletion
+- Removed redundant unverified AJAX nonce
+- Fixed uninstall page cleanup (options were deleted before page IDs were read)
+- Fixed event delete redirect (moved handler to `template_redirect` so `wp_redirect()` fires before output)
+- Added missing `esc_attr()` on hidden event_id input
+
+### 1.0.3
+- Scoped private page access — `event_submitter` users no longer gain broad `read_private_pages`; access is granted only for the two plugin-specific pages via `user_has_cap` filter
+
+### 1.0.2
+- Added admin settings page (enable frontend, default event status)
+- Added AJAX form submission with non-JS fallback
+- Added internationalization support
+- Added uninstall cleanup
+- Added PHP version and Sugar Calendar requirement checks
+- Refactored form processing into reusable `esl_process_event_submission()`
+
+### 1.0.1
+- Bug fixes and stability improvements
+
+### 1.0.0
+- Initial release
+- Frontend event submission and management
+- Custom `event_submitter` role
+- Sugar Calendar Lite integration
+- Flatpickr date/time picker
+- Auto-created private dashboard and add-event pages
 
 ## Contributing
 
 1. Fork the repository
-2. Create a feature branch
+2. Create a feature branch (`git checkout -b feature/your-feature`)
 3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+4. Submit a pull request
 
 ## License
 
-GPL v2 or later
+GPL v2 or later — see [https://www.gnu.org/licenses/gpl-2.0.html](https://www.gnu.org/licenses/gpl-2.0.html)
 
 ## Support
 
-For issues and feature requests, please create an issue in the repository.
-
-## Changelog
-
-### Version 1.0.0
-- Initial release
-- Basic event submission and management
-- Flatpickr date/time picker integration
-- Role-based access control
-- Sugar Calendar Lite integration
+For issues and feature requests, open an issue on [GitHub](https://github.com/thewmh/event-submission-layer/issues).

@@ -3,7 +3,7 @@
  * Plugin Name: Event Submission Layer
  * Plugin URI: https://github.com/thewmh/event-submission-layer
  * Description: Frontend event submission and management for Sugar Calendar Lite. Allows users with the 'event_submitter' role to create, edit, and manage events from the frontend.
- * Version: 1.0.2
+ * Version: 1.0.3
  * Author: William
  * Author URI: https://wizardunicorn.ninja
  * License: GPL v2 or later
@@ -67,9 +67,6 @@ function esl_add_role() {
         'edit_private_events'   => true,
         'edit_published_events' => true,
         'create_events'         => true,
-
-        // allow viewing the private dashboard page
-        'read_private_pages'    => true,
     ]);
 }
 
@@ -159,7 +156,6 @@ function esl_ensure_role_caps() {
         'edit_private_events' => true,
         'edit_published_events' => true,
         'create_events' => true,
-        'read_private_pages' => true,
     ];
 
     foreach ($caps as $cap => $grant) {
@@ -168,6 +164,28 @@ function esl_ensure_role_caps() {
         }
     }
 }
+
+/**
+ * Grant private page read access only for plugin-specific pages.
+ */
+function esl_allow_private_plugin_pages( $allcaps, $caps, $args, $user ) {
+    if ( empty( $caps ) || ! in_array( 'read_private_pages', $caps, true ) ) {
+        return $allcaps;
+    }
+
+    if ( empty( $user ) || empty( $user->roles ) || ! in_array( 'event_submitter', (array) $user->roles, true ) ) {
+        return $allcaps;
+    }
+
+    $queried = get_queried_object();
+    if ( $queried instanceof WP_Post && in_array( $queried->post_name, [ 'events-dashboard', 'add-event' ], true ) ) {
+        $allcaps['read_private_pages'] = true;
+    }
+
+    return $allcaps;
+}
+add_filter( 'user_has_cap', 'esl_allow_private_plugin_pages', 10, 4 );
+
 add_action('wp_enqueue_scripts', function () {
     // Only load on pages with our forms
     if (is_page(['add-event', 'events-dashboard'])) {

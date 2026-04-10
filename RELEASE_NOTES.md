@@ -1,17 +1,19 @@
-# Event Submission Layer v1.0.2 - Release Notes
+# Event Submission Layer v1.0.3 - Release Notes
 
 **Release Date:** April 9, 2026  
-**Version:** 1.0.2  
+**Version:** 1.0.3  
 **Repository:** [thewmh/event-submission-layer](https://github.com/thewmh/event-submission-layer)  
 **License:** GPL-2.0-or-later
 
-## 📚 Documentation
+## 🧩 Fixes
 
-- **User Guide**: Added comprehensive user guide for Event Submitters with step-by-step instructions for adding, editing, and deleting events, including URLs and troubleshooting tips
+- **Private page access fixed**: Event Submitter users no longer gain broad `read_private_pages` access across the site
+- **Scoped access**: Grant private page view only for plugin-specific pages `events-dashboard` and `add-event`
+- **Role security tightened**: Prevents Event Submitters from seeing unrelated private pages while retaining required plugin functionality
 
 ---
 
-# Event Submission Layer v1.0.1 - Release Notes
+# Event Submission Layer v1.0.2 - Release Notes
 
 - **Admin Settings Page**: Added a comprehensive settings page in WordPress admin for configuring plugin options
 - **AJAX Form Submission**: Implemented AJAX-powered form submissions for better user experience without page reloads

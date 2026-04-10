@@ -1,3 +1,30 @@
+# Event Submission Layer v1.0.5 - Release Notes
+
+**Release Date:** April 10, 2026
+**Version:** 1.0.5
+**Repository:** [thewmh/event-submission-layer](https://github.com/thewmh/event-submission-layer)
+**License:** GPL-2.0-or-later
+
+## Fixes
+
+- **Fixed settings checkbox that could not be unchecked**: The "Enable Frontend Submission" checkbox appeared to uncheck and save successfully, but would revert to checked on the next page load. This is a classic WordPress Settings API behaviour: unchecked checkboxes are not submitted by the browser, so without a sanitization callback the key was simply absent from the saved option, causing the render fallback (`1`) to always win. Added `esl_sanitize_options()` as the `sanitize_callback` for `register_setting()`, which explicitly writes `enable_frontend => 0` when the field is missing from POST.
+- **Fixed "Frontend submission is disabled" on fresh installs**: On a new activation, `esl_options` did not exist in the database, so `get_option('esl_options')` returned `false`. Both the `events_dashboard` and `event_submit_form` shortcodes check `empty($options['enable_frontend'])`, which evaluated to `true` for `false`, causing every event_submitter to see "Frontend submission is disabled" despite the admin settings page showing the checkbox as checked. The activation hook now seeds `esl_options` with `enable_frontend => 1` when no option exists, so the plugin works immediately after activation.
+- **Tightened settings option rendering**: The checkbox render fallback changed from `1` to `0`. The real default is now the value seeded at activation; the render function should never need to manufacture a default.
+
+## Planned Enhancements
+
+The following improvements have been identified and are deferred to a future release:
+
+- **Modularize the plugin**: Extract the single-file architecture into separate include files (`roles.php`, `pages.php`, `admin.php`, `shortcodes.php`, `processing.php`, `helpers.php`). Deferred until basic test coverage exists to validate the refactor safely.
+- **Add test coverage**: No PHPUnit or JS tests currently exist. Priority is unit tests for `esl_process_event_submission()` and the role/cap logic.
+- **Pagination on events dashboard**: The dashboard fetches all user events with `posts_per_page => -1`, which will degrade performance at scale.
+- **Extract inline styles to a CSS file**: All UI styling is currently via inline `style` attributes, making the interface difficult to customise from themes. Introduce `assets/css/esl-plugin.css`.
+- **Remove committed build artifact**: `event-submission-layer-v1.0.0.zip` is tracked in git and should be removed; add `*.zip` to `.gitignore`.
+- **Strict comparison for author checks**: Several author ID comparisons use `==` instead of `===`. Convert to `(int) $post->post_author === $user_id`.
+- **Fix misleading `dev`/`watch` npm scripts**: Both currently just run `npm run build` with no file watching. Either implement actual watch behaviour or remove the aliases.
+
+---
+
 # Event Submission Layer v1.0.4 - Release Notes
 
 **Release Date:** April 10, 2026

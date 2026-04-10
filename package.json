@@ -1,6 +1,6 @@
 {
   "name": "event-submission-layer",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Frontend event submission and management for Sugar Calendar Lite",
   "main": "event-submission-layer.php",
   "scripts": {

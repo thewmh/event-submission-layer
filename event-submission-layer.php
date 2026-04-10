@@ -704,6 +704,38 @@ add_action('init', function () {
 });
 
 /**
+ * Handle event deletion early (before output) so wp_redirect() works reliably.
+ * Shortcode-level redirects fail because headers are already sent by the time
+ * shortcodes render inside the page template.
+ */
+add_action('template_redirect', function () {
+    if (!is_page('events-dashboard') || !isset($_GET['delete'])) {
+        return;
+    }
+
+    if (!is_user_logged_in()) {
+        return;
+    }
+
+    $user_id  = get_current_user_id();
+    $event_id = intval($_GET['delete']);
+
+    if (!isset($_GET['_wpnonce']) || !wp_verify_nonce($_GET['_wpnonce'], 'esl_delete_event_' . $event_id)) {
+        wp_die(__('Security check failed.', 'event-submission-layer'));
+    }
+
+    $post = get_post($event_id);
+
+    if ($post && $post->post_author == $user_id) {
+        wp_delete_post($event_id, true);
+        esl_set_form_message(__('Event deleted.', 'event-submission-layer'), 'success');
+    }
+
+    wp_redirect(home_url('/events-dashboard'));
+    exit;
+});
+
+/**
  * 📋 SHORTCODE: USER DASHBOARD
  */
 add_shortcode('events_dashboard', function () {
@@ -722,28 +754,6 @@ add_shortcode('events_dashboard', function () {
     }
 
     $user_id = get_current_user_id();
-
-    // DELETE
-    if (isset($_GET['delete'])) {
-        $event_id = intval($_GET['delete']);
-
-        if (!isset($_GET['_wpnonce']) || !wp_verify_nonce($_GET['_wpnonce'], 'esl_delete_event_' . $event_id)) {
-            wp_die(__('Security check failed.', 'event-submission-layer'));
-        }
-
-        $post = get_post($event_id);
-
-        if ($post && $post->post_author == $user_id) {
-            wp_delete_post($event_id, true);
-            set_transient('esl_form_message_' . $user_id, [
-                'message' => 'Event deleted.',
-                'type'    => 'success',
-            ], 60);
-        }
-
-        wp_redirect(home_url('/events-dashboard'));
-        exit;
-    }
 
     $status = ['publish'];
     if (current_user_can('read_private_posts')) {

@@ -242,20 +242,70 @@ add_action('wp_enqueue_scripts', function () {
         // Add custom script for initialization
         wp_add_inline_script('flatpickr-js', "
             document.addEventListener('DOMContentLoaded', function() {
-                // Initialize Flatpickr on datetime-local inputs
-                flatpickr('input[type=\"datetime-local\"]', {
+                // Round a Date to the next 15-minute boundary.
+                function roundUpTo15(date) {
+                    var ms = 15 * 60 * 1000;
+                    return new Date(Math.ceil(date.getTime() / ms) * ms);
+                }
+
+                var defaultStart = roundUpTo15(new Date());
+
+                // Shared Flatpickr config (no defaultDate — set per-instance below).
+                var baseConfig = {
                     enableTime: true,
                     dateFormat: 'Y-m-dTH:i',
                     time_24hr: false,
                     minuteIncrement: 15,
                     altInput: true,
                     altFormat: 'F j, Y at h:i K',
-                    defaultDate: new Date(),
                     onChange: function(selectedDates, dateStr, instance) {
-                        // Update the original input with the format expected by the form
                         instance.input.value = dateStr;
                     }
-                });
+                };
+
+                // Helper: initialise a start/end picker pair.
+                // When the start date changes, copy the selected date onto the end picker
+                // while preserving the end picker's current time.
+                function initPair(startId, endId) {
+                    var startEl = document.getElementById(startId);
+                    var endEl   = document.getElementById(endId);
+                    if (!startEl || !endEl) { return; }
+
+                    var endPicker = flatpickr(endEl, Object.assign({}, baseConfig, {
+                        defaultDate: startEl.value || defaultStart
+                    }));
+
+                    flatpickr(startEl, Object.assign({}, baseConfig, {
+                        defaultDate: startEl.value || defaultStart,
+                        onChange: function(selectedDates, dateStr, instance) {
+                            instance.input.value = dateStr;
+
+                            if (!selectedDates.length) { return; }
+
+                            // Copy the start date onto the end picker, keeping the end time.
+                            var currentEnd  = endPicker.selectedDates[0] || selectedDates[0];
+                            var newEnd      = new Date(selectedDates[0]);
+                            newEnd.setHours(currentEnd.getHours(), currentEnd.getMinutes(), 0, 0);
+
+                            // If the resulting end would be before (or equal to) start, push it
+                            // forward by one hour so the pair stays logically valid.
+                            if (newEnd <= selectedDates[0]) {
+                                newEnd = new Date(selectedDates[0].getTime() + 60 * 60 * 1000);
+                            }
+
+                            endPicker.setDate(newEnd, true);
+                        }
+                    }));
+                }
+
+                // add-event page form
+                initPair('event_start', 'event_end');
+
+                // events-dashboard: edit form
+                initPair('event_start_edit', 'event_end_edit');
+
+                // events-dashboard: create form
+                initPair('event_start_new', 'event_end_new');
             });
         ");
     }
@@ -425,6 +475,14 @@ function esl_event_data_matches( $event_data, $event_row ) {
 
 /**
  * Process event submission
+ *
+ * TODO: Add location field support.
+ *   - Add `event_location` text input to all three form variants (add-event, dashboard edit, dashboard create).
+ *   - Read here: $event_location = sanitize_text_field($_POST['event_location'] ?? '');
+ *   - Pass 'location' => $event_location in both $event_data arrays (new + update).
+ *   - Pre-populate when editing: read from $sc_event->location.
+ *   - Store in post meta: update_post_meta($post_id, 'event_location', $event_location);
+ *   - Include 'location' in esl_event_data_matches() comparison if field-level matching is added.
  */
 function esl_process_event_submission() {
     if (!is_user_logged_in()) {
